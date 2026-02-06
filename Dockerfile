@@ -1,0 +1,65 @@
+# Dockerfile
+ARG BASE_IMAGE=runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404
+FROM ${BASE_IMAGE}
+
+# ---- System & desktop basics ----
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        xfce4 xfce4-goodies \
+        xauth x11-xserver-utils dbus-x11 \
+        openssh-server wget ca-certificates \
+        curl git sudo nano net-tools socat \
+        libglib2.0-0 libx11-6 libxext6 libxrender1 libxtst6 libxi6 \
+        libasound2 libgtk-3-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root desktop user (optional; adjust to your liking)
+ARG USERNAME=dev
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} ${USERNAME} \
+ && useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USERNAME} \
+ && usermod -aG sudo ${USERNAME} \
+ && echo "%sudo ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# ---- NoMachine (NX) ----
+# We install a stable .deb and let it configure itself to /usr/NX and /etc/NX.
+# NoMachine typically listens on TCP 4000 by default post-install. 
+# (Install location and default port are widely documented in admin guides/tutorials.)
+RUN wget -O /tmp/nomachine.deb \
+      "https://download.nomachine.com/download/9.3/Linux/nomachine_9.3.7_1_amd64.deb" \
+ && apt-get update \
+ && apt-get install -y ./tmp/nomachine.deb \
+ && rm -f /tmp/nomachine.deb
+# (Refs show NoMachine Linux installs to /usr/NX and runs on TCP 4000 by default.) [5](https://kifarunix.com/install-nomachine-on-debian-12/)[6](https://tecadmin.net/install-nomachine-ubuntu/)
+
+# ---- Blender (portable) ----
+# Use Blender’s official Linux tarballs – self-contained & perfect for containers.
+# You can bump BLENDER_URL to the exact version you want.
+ARG BLENDER_URL=https://download.blender.org/release/Blender5.0/blender-5.0.1-linux-x64.tar.xz
+RUN mkdir -p /opt/blender \
+ && wget -O /opt/blender/blender.tar.xz "${BLENDER_URL}" \
+ && tar -xf /opt/blender/blender.tar.xz -C /opt/blender \
+ && rm /opt/blender/blender.tar.xz \
+ && ln -s $(find /opt/blender -maxdepth 1 -type d -name "blender-*") /opt/blender/current
+# (Blender portable tarballs are the official Linux distribution and can run from any folder.) [7](https://docs.blender.org/manual/en/latest/getting_started/installing/linux.html)[8](https://ubuntuhandbook.org/index.php/2021/12/blender-3-0-released-install-tarball/)
+
+# ---- SSH server (optional but useful for SFTP / VS Code Remote) ----
+RUN mkdir -p /var/run/sshd \
+ && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config \
+ && sed -i 's@session    required     pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd
+EXPOSE 22
+
+# ---- NoMachine default port ----
+EXPOSE 4000
+
+# (Optional) Expose a web port if you add a web UI later (e.g., 6901/http)
+# EXPOSE 6901
+
+# ---- Startup script ----
+COPY start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
+
+# Default command: start NoMachine + SSH + keep container running
+CMD ["bash", "-c", "/usr/local/bin/start.sh && tail -f /dev/null"]
