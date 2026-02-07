@@ -46,14 +46,38 @@ RUN set -eux; \
 #         libasound2 libgtk-3-0 \
 #     && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root desktop user (optional; adjust to your liking)
+# Create or reuse group/user safely, then grant sudo (idempotent)
 ARG USERNAME=dev
 ARG UID=1000
 ARG GID=1000
-RUN groupadd -g ${GID} ${USERNAME} \
- && useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USERNAME} \
- && usermod -aG sudo ${USERNAME} \
- && echo "%sudo ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+RUN set -eux; \
+  # 1) Resolve/ensure group
+  if getent group "${GID}" >/dev/null; then \
+    # A group with this GID already exists: capture its name
+    EXISTING_GNAME="$(getent group "${GID}" | cut -d: -f1)"; \
+    # If the existing group name differs from $USERNAME, remember it
+    GNAME="${EXISTING_GNAME}"; \
+  else \
+    # No group with that GID: create it with the desired name
+    groupadd -g "${GID}" "${USERNAME}"; \
+    GNAME="${USERNAME}"; \
+  fi; \
+  # 2) Create or reuse user
+  if id -u "${USERNAME}" >/dev/null 2>&1; then \
+    echo "User ${USERNAME} already exists"; \
+    # Ensure primary group matches desired GID (optional: only if needed)
+    if [ "$(id -g "${USERNAME}")" != "${GID}" ]; then usermod -g "${GID}" "${USERNAME}"; fi; \
+  else \
+    useradd -m -u "${UID}" -g "${GID}" -s /bin/bash "${USERNAME}"; \
+  fi; \
+  # 3) Make sure sudo is present (you already install it earlier; this is harmless)
+  apt-get update && apt-get install -y --no-install-recommends sudo && rm -rf /var/lib/apt/lists/*; \
+  # 4) Add to sudo group (idempotent)
+  usermod -aG sudo "${USERNAME}"; \
+  # 5) Add NOPASSWD once
+  grep -qE '^[[:space:]]*%sudo[[:space:]]+ALL=\(ALL\)[[:space:]]+NOPASSWD:ALL' /etc/sudoers \
+    || echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # ---- NoMachine (NX) ----
 # We install a stable .deb and let it configure itself to /usr/NX and /etc/NX.
