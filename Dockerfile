@@ -5,17 +5,28 @@ FROM ${BASE_IMAGE}
 # ---- System & desktop basics ----
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Harden apt: retries, quiet logs, and correct cleanup
+
+# Enable universe/multiverse on Noble (Deb822), use noninteractive APT, and install packages
 RUN set -eux; \
-    apt-get update -o Acquire::Retries=5 -o Acquire::http::Timeout="30"; \
+    # 1) Make sure the Deb822 sources include universe/multiverse (Noble uses ubuntu.sources)
+    if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then \
+      if ! grep -q '^Components: .*universe' /etc/apt/sources.list.d/ubuntu.sources; then \
+        sed -i 's/^Components: .*/Components: main universe restricted multiverse/' /etc/apt/sources.list.d/ubuntu.sources; \
+      fi; \
+    fi; \
+    # 2) Update with retries (helps in CI)
+    apt-get update -o Acquire::Retries=5 -o Acquire::http::Timeout="30" \
+    || (cat /var/log/apt/term.log || true; exit 1); \
+    # 3) Install (no apt-transport-https needed on modern Ubuntu)
     apt-get install -y --no-install-recommends \
-        ca-certificates gnupg2 apt-transport-https \
+        ca-certificates gnupg2 \
         xfce4 xfce4-goodies \
         xauth x11-xserver-utils dbus-x11 \
         openssh-server wget curl git sudo nano net-tools socat \
         libglib2.0-0 libx11-6 libxext6 libxrender1 libxtst6 libxi6 \
         libasound2 libgtk-3-0 tzdata; \
     rm -rf /var/lib/apt/lists/*
+
 
 # RUN apt-get update && \
 #     apt-get install -y --no-install-recommends \
