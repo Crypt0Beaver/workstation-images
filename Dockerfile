@@ -5,7 +5,9 @@ FROM ${BASE_IMAGE}
 # ---- System & desktop basics ----
 ENV DEBIAN_FRONTEND=noninteractive
 
-
+RUN set -eux; \
+    apt-get update || (cat /var/log/apt/term.log || true; exit 1); \
+    apt-get install -y --no-install-recommends xfce4 || (cat /var/log/apt/term.log || true; exit 1)
 # Enable universe/multiverse on Noble (Deb822), use noninteractive APT, and install packages
 RUN set -eux; \
     # 1) Make sure the Deb822 sources include universe/multiverse (Noble uses ubuntu.sources)
@@ -53,8 +55,8 @@ RUN groupadd -g ${GID} ${USERNAME} \
 # (Install location and default port are widely documented in admin guides/tutorials.)
 RUN wget -O /tmp/nomachine.deb \
       "https://download.nomachine.com/download/9.3/Linux/nomachine_9.3.7_1_amd64.deb" \
- && apt-get update \
- && apt-get install -y ./tmp/nomachine.deb \
+ && apt-get update -o Acquire::Retries=5 \
+ && apt-get install -y /tmp/nomachine.deb \
  && rm -f /tmp/nomachine.deb
 # (Refs show NoMachine Linux installs to /usr/NX and runs on TCP 4000 by default.) [5](https://kifarunix.com/install-nomachine-on-debian-12/)[6](https://tecadmin.net/install-nomachine-ubuntu/)
 
