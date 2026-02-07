@@ -4,15 +4,28 @@ FROM ${BASE_IMAGE}
 
 # ---- System & desktop basics ----
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && \
+
+# Harden apt: retries, quiet logs, and correct cleanup
+RUN set -eux; \
+    apt-get update -o Acquire::Retries=5 -o Acquire::http::Timeout="30"; \
     apt-get install -y --no-install-recommends \
+        ca-certificates gnupg2 apt-transport-https \
         xfce4 xfce4-goodies \
         xauth x11-xserver-utils dbus-x11 \
-        openssh-server wget ca-certificates \
-        curl git sudo nano net-tools socat \
+        openssh-server wget curl git sudo nano net-tools socat \
         libglib2.0-0 libx11-6 libxext6 libxrender1 libxtst6 libxi6 \
-        libasound2 libgtk-3-0 \
-    && rm -rf /var/lib/apt/lists/*
+        libasound2 libgtk-3-0 tzdata; \
+    rm -rf /var/lib/apt/lists/*
+
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends \
+#         xfce4 xfce4-goodies \
+#         xauth x11-xserver-utils dbus-x11 \
+#         openssh-server wget ca-certificates \
+#         curl git sudo nano net-tools socat \
+#         libglib2.0-0 libx11-6 libxext6 libxrender1 libxtst6 libxi6 \
+#         libasound2 libgtk-3-0 \
+#     && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root desktop user (optional; adjust to your liking)
 ARG USERNAME=dev
