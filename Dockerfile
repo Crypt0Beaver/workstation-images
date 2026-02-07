@@ -46,36 +46,41 @@ RUN set -eux; \
 #         libasound2 libgtk-3-0 \
 #     && rm -rf /var/lib/apt/lists/*
 
-# Create or reuse group/user safely, then grant sudo (idempotent)
+# ----- Robust user/group creation that handles pre-existing UID/GID 1000 -----
 ARG USERNAME=dev
 ARG UID=1000
 ARG GID=1000
 
 RUN set -eux; \
-  # 1) Resolve/ensure group
+  # Make sure sudo is available (no-op if already installed)
+  apt-get update && apt-get install -y --no-install-recommends sudo && rm -rf /var/lib/apt/lists/*; \
+  \
+  # 1) Ensure group with GID=${GID} is named ${USERNAME}
   if getent group "${GID}" >/dev/null; then \
-    # A group with this GID already exists: capture its name
     EXISTING_GNAME="$(getent group "${GID}" | cut -d: -f1)"; \
-    # If the existing group name differs from $USERNAME, remember it
-    GNAME="${EXISTING_GNAME}"; \
+    if [ "${EXISTING_GNAME}" != "${USERNAME}" ]; then \
+      groupmod -n "${USERNAME}" "${EXISTING_GNAME}"; \
+    fi; \
   else \
-    # No group with that GID: create it with the desired name
     groupadd -g "${GID}" "${USERNAME}"; \
-    GNAME="${USERNAME}"; \
   fi; \
-  # 2) Create or reuse user
-  if id -u "${USERNAME}" >/dev/null 2>&1; then \
-    echo "User ${USERNAME} already exists"; \
-    # Ensure primary group matches desired GID (optional: only if needed)
+  \
+  # 2) Ensure user with UID=${UID} is named ${USERNAME} and home is /home/${USERNAME}
+  if getent passwd "${UID}" >/dev/null; then \
+    EXISTING_UNAME="$(getent passwd "${UID}" | cut -d: -f1)"; \
+    if [ "${EXISTING_UNAME}" != "${USERNAME}" ]; then \
+      usermod -l "${USERNAME}" -d "/home/${USERNAME}" -m "${EXISTING_UNAME}"; \
+    fi; \
+    # Also ensure primary group matches ${GID}
     if [ "$(id -g "${USERNAME}")" != "${GID}" ]; then usermod -g "${GID}" "${USERNAME}"; fi; \
+  elif id -u "${USERNAME}" >/dev/null 2>&1; then \
+    usermod -u "${UID}" -g "${GID}" -d "/home/${USERNAME}" -m "${USERNAME}"; \
   else \
     useradd -m -u "${UID}" -g "${GID}" -s /bin/bash "${USERNAME}"; \
   fi; \
-  # 3) Make sure sudo is present (you already install it earlier; this is harmless)
-  apt-get update && apt-get install -y --no-install-recommends sudo && rm -rf /var/lib/apt/lists/*; \
-  # 4) Add to sudo group (idempotent)
+  \
+  # 3) Sudo access (idempotent)
   usermod -aG sudo "${USERNAME}"; \
-  # 5) Add NOPASSWD once
   grep -qE '^[[:space:]]*%sudo[[:space:]]+ALL=\(ALL\)[[:space:]]+NOPASSWD:ALL' /etc/sudoers \
     || echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
