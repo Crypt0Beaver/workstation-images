@@ -6,6 +6,12 @@ FROM ${BASE_IMAGE}
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN set -eux; \
+  echo "=== ubuntu.sources ==="; \
+  test -f /etc/apt/sources.list.d/ubuntu.sources && cat /etc/apt/sources.list.d/ubuntu.sources || true; \
+  echo "=== apt update ==="; \
+  apt-get update || (echo "=== /var/log/apt/term.log ==="; cat /var/log/apt/term.log || true; exit 1)
+  
+RUN set -eux; \
     apt-get update || (cat /var/log/apt/term.log || true; exit 1); \
     apt-get install -y --no-install-recommends xfce4 || (cat /var/log/apt/term.log || true; exit 1)
 # Enable universe/multiverse on Noble (Deb822), use noninteractive APT, and install packages
