@@ -14,7 +14,7 @@ fi
 
 # 2) Start a physical headless display with Xvfb (DISPLAY :100)
 if ! pgrep -f "Xvfb :100" >/dev/null 2>&1; then
-  Xvfb :100 -screen 0 1920x1080x24 -nolisten tcp &
+  Xvfb :100 -screen 0 2560x1440x24 -nolisten tcp &
   sleep 1
 fi
 
