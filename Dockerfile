@@ -5,15 +5,15 @@ FROM ${BASE_IMAGE}
 # ---- System & desktop basics ----
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN set -eux; \
-  echo "=== ubuntu.sources ==="; \
-  test -f /etc/apt/sources.list.d/ubuntu.sources && cat /etc/apt/sources.list.d/ubuntu.sources || true; \
-  echo "=== apt update ==="; \
-  apt-get update || (echo "=== /var/log/apt/term.log ==="; cat /var/log/apt/term.log || true; exit 1)
+# RUN set -eux; \
+#   echo "=== ubuntu.sources ==="; \
+#   test -f /etc/apt/sources.list.d/ubuntu.sources && cat /etc/apt/sources.list.d/ubuntu.sources || true; \
+#   echo "=== apt update ==="; \
+#   apt-get update || (echo "=== /var/log/apt/term.log ==="; cat /var/log/apt/term.log || true; exit 1)
   
-RUN set -eux; \
-    apt-get update || (cat /var/log/apt/term.log || true; exit 1); \
-    apt-get install -y --no-install-recommends xfce4 || (cat /var/log/apt/term.log || true; exit 1)
+# RUN set -eux; \
+#     apt-get update || (cat /var/log/apt/term.log || true; exit 1); \
+#     apt-get install -y --no-install-recommends xfce4 || (cat /var/log/apt/term.log || true; exit 1)
 # Enable universe/multiverse on Noble (Deb822), use noninteractive APT, and install packages
 RUN set -eux; \
     # 1) Make sure the Deb822 sources include universe/multiverse (Noble uses ubuntu.sources)
@@ -32,7 +32,7 @@ RUN set -eux; \
         xauth x11-xserver-utils dbus-x11 \
         openssh-server wget curl git sudo nano net-tools socat \
         libglib2.0-0 libx11-6 libxext6 libxrender1 libxtst6 libxi6 \
-        libasound2 libgtk-3-0 tzdata; \
+        libasound2t64 libgtk-3-0 tzdata; \
     rm -rf /var/lib/apt/lists/*
 
 
