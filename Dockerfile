@@ -1,5 +1,5 @@
 # Dockerfile
-ARG BASE_IMAGE=runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404
+ARG BASE_IMAGE=runpod/kasm-desktop:1.0.0
 FROM ${BASE_IMAGE}
 
 # ---- System & desktop basics ----
