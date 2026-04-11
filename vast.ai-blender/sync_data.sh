@@ -1,6 +1,6 @@
 #!/bin/bash
 REMOTE_PATH="cloudstorage:vast-backups"
-LOCAL_PATH="/root/work"
+LOCAL_PATH="/workspace"
 
 case "$1" in
     pull)
