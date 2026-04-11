@@ -18,10 +18,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # -----------------------------
+      # Lowercase GHCR owner
+      # -----------------------------
       - name: Set lowercase username
+        id: vars
         run: |
           REPO_LOWER=$(echo "${{ github.actor }}" | tr '[:upper:]' '[:lower:]')
           echo ${REPO_LOWER}
+
+        # run: echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -36,4 +42,4 @@ jobs:
           context: ./vast.ai-blender
           push: true
           tags: |
-            ghcr.io/${REPO_LOWER}/vast-gpu-box:latest
+            ghcr.io/${{ steps.vars.outputs.REPO_LOWER }}/vast-gpu-box:latest
