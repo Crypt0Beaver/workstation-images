@@ -1,0 +1,15 @@
+[Unit]
+Description=Vast.ai Cloud Sync Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/environment
+ExecStartPre=/bin/bash -c 'echo $RCLONE_CONF_BASE64 | base64 -d > /root/.config/rclone/rclone.conf'
+ExecStartPre=/usr/local/bin/sync_data.sh pull
+ExecStart=/usr/local/bin/sync_data.sh daemon
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
