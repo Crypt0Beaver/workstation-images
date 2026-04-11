@@ -4,13 +4,35 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # 1. Install core tools
 RUN apt-get update && apt-get install -y \
-    nvtop htop rclone wget curl xz-utils libglu1-mesa jq \
+    nvtop htop rclone wget curl xz-utils libglu1-mesa jq flatpak \
     && apt-get clean
+
+# 2. Add the Flathub repository
+RUN flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+# 3. Install PrusaSlicer (Stable)
+# Note: We use --system to install it for all users in the container
+RUN flatpak install -y flathub com.prusa3d.PrusaSlicer
 
 # 2. Dynamically fetch latest PrusaSlicer (using jq for reliability)
 # RUN export URL=$(curl -s https://api.github.com/repos/prusa3d/PrusaSlicer/releases/latest | jq -r '.assets[] | select(.name | contains("linux-x64-GTK3")) | .browser_download_url' | head -n 1) \
 #     && echo "Downloading PrusaSlicer from: $URL" \
 #     && if [ -z "$URL" ] || [ "$URL" = "null" ]; then echo "Error: PrusaSlicer URL not found"; exit 1; fi \
+#     && wget -q -O prusaslicer.tar.bz2 "$URL" \
+#     && mkdir -p /opt/prusaslicer \
+#     && tar -xf prusaslicer.tar.bz2 -C /opt/prusaslicer --strip-components=1 \
+#     && ln -s /opt/prusaslicer/prusa-slicer /usr/local/bin/prusa-slicer \
+#     && rm prusaslicer.tar.bz2
+# We use the GitHub API to find the GTK3 tarball. 
+# Added 'arg GITHUB_TOKEN' to allow authenticated API calls if needed.
+# ARG GITHUB_TOKEN
+# RUN export URL=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" https://api.github.com/repos/prusa3d/PrusaSlicer/releases/latest | \
+#     jq -r '.assets[] | select(.name | test("linux-x64-GTK3.*tar.bz2")) | .browser_download_url' | head -n 1) \
+#     && echo "Downloading PrusaSlicer from: $URL" \
+#     && if [ -z "$URL" ] || [ "$URL" = "null" ]; then \
+#          echo "❌ Error: Could not find PrusaSlicer Linux GTK3 asset. Check naming on GitHub."; \
+#          exit 1; \
+#        fi \
 #     && wget -q -O prusaslicer.tar.bz2 "$URL" \
 #     && mkdir -p /opt/prusaslicer \
 #     && tar -xf prusaslicer.tar.bz2 -C /opt/prusaslicer --strip-components=1 \
