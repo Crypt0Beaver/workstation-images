@@ -29,4 +29,5 @@ RUN chmod +x /usr/local/bin/sync_data.sh \
     && systemctl enable vast-sync.service
 
 # Setup work directory
-RUN mkdir -p /root/work
+WORKDIR /workspace
+RUN mkdir -p /workspace
