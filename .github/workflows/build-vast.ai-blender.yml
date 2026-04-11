@@ -16,20 +16,23 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+      - name: Set lowercase username
+        run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v6
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
+          username: ${ REPO_LOWER }
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./vast.ai-blender
           push: true
-          # This line lowercases the repo name automatically
           tags: |
-            ghcr.io/${{ github.repository_owner }}/vast-gpu-box:latest
+            ghcr.io/${ REPO_LOWER }/vast-gpu-box:latest
