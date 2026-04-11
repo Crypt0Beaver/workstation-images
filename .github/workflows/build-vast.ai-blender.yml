@@ -18,6 +18,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # 1. Free up disk space (Solves the "No space left" error)
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache
+          docker system prune -af
+
       # -----------------------------
       # Lowercase GHCR owner
       # -----------------------------
@@ -42,4 +50,8 @@ jobs:
           context: ./vast.ai-blender
           push: true
           tags: |
-            ghcr.io/${{ steps.vars.outputs.REPO_LOWER }}/vast-gpu-box:latest
+            # ghcr.io/${{ steps.vars.outputs.REPO_LOWER }}/vast-gpu-box:latest
+            ghcr.io/${{ github.repository_owner }}/vast-gpu-box:latest
+          # This magic line enables the remote cache
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
