@@ -24,7 +24,7 @@ jobs:
       - name: Set lowercase username
         id: vars
         run: |
-          REPO_LOWER=$(echo "${{ github.actor }}" | tr '[:upper:]' '[:lower:]')
+          echo "REPO_LOWER=$(echo "${{ github.actor }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
           echo ${REPO_LOWER}
 
         # run: echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
