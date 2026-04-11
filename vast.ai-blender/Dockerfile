@@ -13,8 +13,11 @@ RUN flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.
 # 3. Install PrusaSlicer (Stable)
 # Note: We use --system to install it for all users in the container
 RUN flatpak install -y flathub com.prusa3d.PrusaSlicer
+# Create a wrapper so 'prusa-slicer' command works like a normal app
+RUN echo '#!/bin/bash\nflatpak run com.prusa3d.PrusaSlicer "$@"' > /usr/local/bin/prusa-slicer && \
+    chmod +x /usr/local/bin/prusa-slicer
 
-# 3. Install Blender (Stable)
+# 4. Install Blender (Stable)
 # Note: We use --system to install it for all users in the container
 RUN flatpak install -y flathub org.blender.Blender
 RUN ln -s /var/lib/flatpak/exports/bin/org.blender.Blender /usr/local/bin/blender
