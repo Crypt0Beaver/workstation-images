@@ -23,7 +23,7 @@ jobs:
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
 
       - name: Log in to GHCR
-        uses: docker/login-action@v5
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${ REPO_LOWER }
