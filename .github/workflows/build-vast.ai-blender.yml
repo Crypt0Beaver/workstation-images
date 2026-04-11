@@ -24,7 +24,7 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/hostedtoolcache
-          docker system prune -af
+        #  docker system prune -af
 
       # 2. MANDATORY: Create a BuildKit builder (Solves your Error)
       - name: Set up Docker Buildx
