@@ -21,12 +21,13 @@ jobs:
       - name: Set lowercase username
         run: |
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo ${REPO_LOWER}
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${ REPO_LOWER }
+          username: ${REPO_LOWER}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
@@ -35,4 +36,4 @@ jobs:
           context: ./vast.ai-blender
           push: true
           tags: |
-            ghcr.io/${ REPO_LOWER }/vast-gpu-box:latest
+            ghcr.io/${REPO_LOWER}/vast-gpu-box:latest
