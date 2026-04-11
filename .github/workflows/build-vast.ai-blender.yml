@@ -20,7 +20,7 @@ jobs:
 
       - name: Set lowercase username
         run: |
-          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          REPO_LOWER=$(echo "${{ github.actor }}" | tr '[:upper:]' '[:lower:]')
           echo ${REPO_LOWER}
 
       - name: Log in to GHCR
