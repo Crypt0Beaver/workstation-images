@@ -10,6 +10,7 @@ ExecStartPre=/bin/bash -c 'echo $RCLONE_CONF_BASE64 | base64 -d > /root/.config/
 ExecStartPre=/usr/local/bin/sync_data.sh pull
 ExecStart=/usr/local/bin/sync_data.sh daemon
 Restart=always
+WorkingDirectory=/workspace
 
 [Install]
 WantedBy=multi-user.target
