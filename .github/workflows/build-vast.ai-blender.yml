@@ -16,14 +16,14 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set lowercase username
         run: |
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
 
       - name: Log in to GHCR
-        uses: docker/login-action@v6
+        uses: docker/login-action@v5
         with:
           registry: ${{ env.REGISTRY }}
           username: ${ REPO_LOWER }
