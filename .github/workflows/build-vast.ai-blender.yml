@@ -26,6 +26,12 @@ jobs:
           sudo rm -rf /opt/hostedtoolcache
           docker system prune -af
 
+      # 2. MANDATORY: Create a BuildKit builder (Solves your Error)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v6
+        with:
+          driver: docker-container
+
       # -----------------------------
       # Lowercase GHCR owner
       # -----------------------------
