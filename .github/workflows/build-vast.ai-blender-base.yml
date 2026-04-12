@@ -53,7 +53,7 @@ jobs:
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${REPO_LOWER}
+          username: ${{ steps.vars.outputs.REPO_LOWER }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
