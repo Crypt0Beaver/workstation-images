@@ -19,7 +19,7 @@ rm blender-*.tar.xz
 
 # 4. Setup your Sync Service
 # Note: You can also download your sync_data.sh and .service file here via wget
-wget -q -O /usr/local/bin/sync_data.sh https://raw.githubusercontent.com/crypt0beaver/workstation-images/main/vast.ai-blender/sync_data.sh
+wget -q -O /usr/local/bin/sync_data.sh https://raw.githubusercontent.com/Crypt0Beaver/workstation-images/refs/heads/main/vast.ai-blender/sync_data.sh
 chmod +x /usr/local/bin/sync_data.sh
 
 # 5. Signal Completion
