@@ -59,11 +59,11 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ./vast.ai-blender
-          file: Dockerfile.base
+          file: ./vast.ai-blender/Dockerfile.base
           push: true
           tags: |
-            ghcr.io/${{ steps.vars.outputs.REPO_LOWER }}/vast-gpu-box:latest
+            ghcr.io/${{ steps.vars.outputs.REPO_LOWER }}/vast-gpu-base:latest
           #  ghcr.io/${{ github.repository_owner }}/vast-gpu-box:latest
           # ✅ USE type=registry to bypass the 10GB GitHub limit
-          cache-from: type=registry,ref=ghcr.io/${{ steps.vars.outputs.REPO_LOWER }}/vast-gpu-box:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ steps.vars.outputs.REPO_LOWER }}/vast-gpu-box:buildcache,mode=max
+          cache-from: type=registry,ref=ghcr.io/${{ steps.vars.outputs.REPO_LOWER }}/vast-gpu-base:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ steps.vars.outputs.REPO_LOWER }}/vast-gpu-base:buildcache,mode=max
