@@ -69,13 +69,13 @@ RUN B_BASE="https://mirrors.dotsrc.org/blender/release/" && \
 #     && rm blender-${SUBVERSION}-linux-x64.tar.xz
 
 # 4. Setup the Sync Script and Systemd Service
-COPY sync_data.sh /usr/local/bin/sync_data.sh
-COPY vast-sync.service /etc/systemd/system/vast-sync.service
-RUN chmod +x /usr/local/bin/sync_data.sh \
-    && systemctl enable vast-sync.service
+# COPY sync_data.sh /usr/local/bin/sync_data.sh
+# COPY vast-sync.service /etc/systemd/system/vast-sync.service
+# RUN chmod +x /usr/local/bin/sync_data.sh \
+#     && systemctl enable vast-sync.service
 
 # Setup work directory
 # WORKDIR /workspace
-RUN mkdir -p /workspace
+# RUN mkdir -p /workspace
 
 
