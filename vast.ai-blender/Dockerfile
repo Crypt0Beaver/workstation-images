@@ -1,4 +1,4 @@
-FROM ghcr.io/yourusername/vast-gpu-base:latest
+FROM ghcr.io/crypt0beaver/vast-gpu-base:latest
 
 # Setup the Sync Script and Systemd Service
 COPY sync_data.sh /usr/local/bin/sync_data.sh
