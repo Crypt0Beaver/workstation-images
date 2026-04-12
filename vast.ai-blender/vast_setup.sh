@@ -1,6 +1,10 @@
 #!/bin/bash
+exec > /var/log/vast_setup.log 2>&1  # Redirect all output to a log file
+echo "Starting setup at $(date)"
+
 # 1. Update and install core tools
-apt-get update && apt-get install -y nvtop htop rclone wget curl xz-utils libglu1-mesa jq flatpak
+apt-get update
+apt-get install -y nvtop htop rclone wget curl xz-utils libglu1-mesa jq flatpak
 
 # 2. Install PrusaSlicer via Flatpak
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -24,3 +28,4 @@ chmod +x /usr/local/bin/sync_data.sh
 
 # 5. Signal Completion
 echo "Setup Complete" > /root/setup_done.txt
+echo "Setup finished at $(date)"
