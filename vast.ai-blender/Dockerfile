@@ -77,3 +77,10 @@ RUN chmod +x /usr/local/bin/sync_data.sh \
 # Setup work directory
 WORKDIR /workspace
 RUN mkdir -p /workspace
+
+# Ensure SSH directory and authorized_keys have the correct locked-down permissions
+RUN mkdir -p /root/.ssh && \
+    chmod 700 /root/.ssh && \
+    touch /root/.ssh/authorized_keys && \
+    chmod 600 /root/.ssh/authorized_keys && \
+    chown -R root:root /root/.ssh
