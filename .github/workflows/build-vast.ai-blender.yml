@@ -21,16 +21,16 @@ jobs:
 
       # 1. Free up disk space (Solves the "No space left" error)
 
-      # - name: Maximize build space
-      #   uses: jlumbroso/free-disk-space@main
-      #   with:
-      #     tool-cache: true
-      #     android: true
-      #     dotnet: true
-      #     haskell: true
-      #     large-packages: false
-      #     docker-images: false
-      #     swap-storage: false
+      - name: Maximize build space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: false
+          swap-storage: false
 
       # 2. MANDATORY: Create a BuildKit builder (Solves your Error)
       - name: Set up Docker Buildx
