@@ -19,9 +19,19 @@ RUN echo '#!/bin/bash\nflatpak run com.prusa3d.PrusaSlicer "$@"' > /usr/local/bi
 
 # 4. Install Blender (Stable)
 # Note: We use --system to install it for all users in the container
-RUN flatpak install -y flathub org.blender.Blender
-RUN ln -s /var/lib/flatpak/exports/bin/org.blender.Blender /usr/local/bin/blender
+# RUN flatpak install -y flathub org.blender.Blender
+# RUN ln -s /var/lib/flatpak/exports/bin/org.blender.Blender /usr/local/bin/blender
 
+# Direct Install Blender (Saves MASSIVE space)
+# This uses the mirror logic to get the real latest without the Flatpak overhead
+RUN B_BASE="https://mirrors.dotsrc.org/blender/release/" && \
+    VERSION=$(curl -s $B_BASE | grep -oP 'Blender\K[0-9]+\.[0-9]+' | sort -V | tail -1) && \
+    SUB=$(curl -s "${B_BASE}Blender${VERSION}/" | grep -oP "blender-\K$VERSION\.[0-9]+" | sort -V | tail -1) && \
+    wget -q "https://mirrors.dotsrc.org/blender/release/Blender${VERSION}/blender-${SUB}-linux-x64.tar.xz" && \
+    mkdir -p /opt/blender && tar -xf blender-*.tar.xz -C /opt/blender --strip-components=1 && \
+    ln -s /opt/blender/blender /usr/local/bin/blender && \
+    rm blender-*.tar.xz
+    
 # 2. Dynamically fetch latest PrusaSlicer (using jq for reliability)
 # RUN export URL=$(curl -s https://api.github.com/repos/prusa3d/PrusaSlicer/releases/latest | jq -r '.assets[] | select(.name | contains("linux-x64-GTK3")) | .browser_download_url' | head -n 1) \
 #     && echo "Downloading PrusaSlicer from: $URL" \
