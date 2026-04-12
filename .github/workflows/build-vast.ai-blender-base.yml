@@ -1,0 +1,70 @@
+name: Build and Push Vast Image Base
+
+on:
+  # push:
+  #   branches: [ "main" ]
+  workflow_dispatch: 
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # 1. Free up disk space (Solves the "No space left" error)
+
+      # - name: Maximize build space
+      #   uses: jlumbroso/free-disk-space@main
+      #   with:
+      #     tool-cache: true
+      #     android: true
+      #     dotnet: true
+      #     haskell: true
+      #     large-packages: false
+      #     docker-images: false
+      #     swap-storage: false
+
+      # 2. MANDATORY: Create a BuildKit builder (Solves your Error)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker-container
+
+      # -----------------------------
+      # Lowercase GHCR owner
+      # -----------------------------
+      - name: Set lowercase username
+        id: vars
+        run: |
+          echo "REPO_LOWER=$(echo "${{ github.actor }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+          echo ${REPO_LOWER}
+
+        # run: echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${REPO_LOWER}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: ./vast.ai-blender
+          file: ./vast.ai-blender/Dockerfile.base
+          push: true
+          tags: |
+            ghcr.io/${{ steps.vars.outputs.REPO_LOWER }}/vast-gpu-base:latest
+          #  ghcr.io/${{ github.repository_owner }}/vast-gpu-box:latest
+          # ✅ USE type=registry to bypass the 10GB GitHub limit
+          cache-from: type=registry,ref=ghcr.io/${{ steps.vars.outputs.REPO_LOWER }}/vast-gpu-base:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ steps.vars.outputs.REPO_LOWER }}/vast-gpu-base:buildcache,mode=max
