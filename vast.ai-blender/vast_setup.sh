@@ -9,6 +9,7 @@ apt-get install -y nvtop htop rclone wget curl xz-utils libglu1-mesa jq flatpak
 # Install NoMachine
 wget https://web9001.nomachine.com/download/9.4/Linux/nomachine_9.4.14_1_amd64.deb
 dpkg -i nomachine_9.4.14_1_amd64.deb
+rm nomachine_9.4.14_1_amd64.deb
 
 # Ensure the desktop is ready for remote connections
 systemctl enable nxserver
