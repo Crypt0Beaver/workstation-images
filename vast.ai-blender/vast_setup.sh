@@ -1,14 +1,31 @@
 #!/bin/bash
 exec > /var/log/vast_setup.log 2>&1  # Redirect all output to a log file
 echo "Starting setup at $(date)"
+# 1. Pre-configure debconf to be non-interactive
+export DEBIAN_FRONTEND=noninteractive
 
 # 1. Update and install core tools
 apt-get update
 apt-get install -y nvtop htop rclone wget curl xz-utils libglu1-mesa jq flatpak
 
+# Add the Flatpak path to the system-wide environment variables
+echo 'export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:/usr/local/share:/usr/share"' >> /etc/profile.d/flatpak_path.sh
+
+# Apply it to your current session immediately
+export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:$XDG_DATA_DIRS"
+
 # Install NoMachine
 wget https://web9001.nomachine.com/download/9.4/Linux/nomachine_9.4.14_1_amd64.deb
-dpkg -i nomachine_9.4.14_1_amd64.deb
+# 2. Run the installation in the background with a "safety" kill
+# This ensures that even if it hangs at the very end (after files are copied), 
+# your script can continue.
+timeout 120s dpkg -i nomachine_9.4.14_1_amd64.deb || true
+# dpkg -i nomachine_9.4.14_1_amd64.deb
+
+# 3. Clean up the dpkg lock if it's still held
+# NoMachine is usually functional even if the post-inst script hangs at the end.
+fuser -vki /var/lib/dpkg/lock-frontend || true
+dpkg --configure -a || true
 rm nomachine_9.4.14_1_amd64.deb
 
 # Ensure the desktop is ready for remote connections
