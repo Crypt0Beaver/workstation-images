@@ -48,8 +48,8 @@ sudo -u $TARGET_USER rclone mount GDriveCedrixm:vastai_rclone /workspace \
     --vfs-cache-mode full \
     --allow-other \
     --daemon \
-    --exclude ".cache/**" 
-    --config "/var/tmp/rclone.conf" \
+    --exclude ".cache/**" \
+    --config "/var/tmp/rclone.conf" 
 
 rm -rf /home/user
 ln -sv /workspace/userhome /home/user
