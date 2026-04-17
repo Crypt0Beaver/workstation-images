@@ -35,7 +35,7 @@ curl https://rclone.org/install.sh | sudo bash
 
 # 2. Mount the cloud folder to the workspace
 # We add --dir-cache-time to make it feel snappier
-rclone mount GDriveCedrixm:vastai_rclone /workspace \
+rclone mount $RCLONE_FOLDER /workspace \
     --config <(echo "$RCLONE_CONFIG_BASE64" | base64 -d) \
     --vfs-cache-mode full \
     --allow-other \
