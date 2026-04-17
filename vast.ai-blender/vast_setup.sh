@@ -14,22 +14,7 @@ echo 'export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:/usr/local/share:/usr
 # Apply it to your current session immediately
 export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:$XDG_DATA_DIRS"
 
-# Install NoMachine
-wget https://web9001.nomachine.com/download/9.4/Linux/nomachine_9.4.14_1_amd64.deb
-# 2. Run the installation in the background with a "safety" kill
-# This ensures that even if it hangs at the very end (after files are copied), 
-# your script can continue.
-timeout 120s dpkg -i nomachine_9.4.14_1_amd64.deb || true
-# dpkg -i nomachine_9.4.14_1_amd64.deb
 
-# 3. Clean up the dpkg lock if it's still held
-# NoMachine is usually functional even if the post-inst script hangs at the end.
-fuser -vki /var/lib/dpkg/lock-frontend || true
-dpkg --configure -a || true
-rm nomachine_9.4.14_1_amd64.deb
-
-# Ensure the desktop is ready for remote connections
-systemctl enable nxserver
 
 # Enable 'allow_other' in the system config so 'user' can share the mount
 if [ -f /etc/fuse.conf ]; then
@@ -72,7 +57,24 @@ sudo -u $TARGET_USER rclone mount GDriveCedrixm:vastai_rclone /workspace \
 #     --allow-other \
 #     --dir-cache-time 1000h \
 #     --daemon
-    
+
+# Install NoMachine
+wget https://web9001.nomachine.com/download/9.4/Linux/nomachine_9.4.14_1_amd64.deb
+# 2. Run the installation in the background with a "safety" kill
+# This ensures that even if it hangs at the very end (after files are copied), 
+# your script can continue.
+timeout 120s dpkg -i nomachine_9.4.14_1_amd64.deb || true
+# dpkg -i nomachine_9.4.14_1_amd64.deb
+
+# 3. Clean up the dpkg lock if it's still held
+# NoMachine is usually functional even if the post-inst script hangs at the end.
+fuser -vki /var/lib/dpkg/lock-frontend || true
+dpkg --configure -a || true
+rm nomachine_9.4.14_1_amd64.deb
+
+# Ensure the desktop is ready for remote connections
+systemctl enable nxserver
+
 # 2. Install PrusaSlicer via Flatpak
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 flatpak install -y flathub com.prusa3d.PrusaSlicer
