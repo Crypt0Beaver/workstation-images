@@ -32,11 +32,11 @@ TARGET_USER="user"
 CUSTOM_HOME="/workspace/homeuser"
 
 # 1. Create the config directory as 'user'
-sudo -u $TARGET_USER mkdir -p ~/.config/rclone
+sudo -u $TARGET_USER mkdir -p $HOME/.config/rclone
 
 # 2. Write the config file as 'user'
 # We use 'sudo -u user tee' to write to a path the user owns
-echo "${RCLONECONFB64_1}${RCLONECONFB64_2}${RCLONECONFB64_3}${RCLONECONFB64_4}" | base64 -d | sudo -u $TARGET_USER tee ~/.config/rclone/rclone.conf > /dev/null
+echo "${RCLONECONFB64_1}${RCLONECONFB64_2}${RCLONECONFB64_3}${RCLONECONFB64_4}" | base64 -d | sudo -u $TARGET_USER tee $HOME/.config/rclone/rclone.conf > /dev/null
 
 curl https://rclone.org/install.sh | sudo bash
 
