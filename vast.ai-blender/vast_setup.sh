@@ -51,6 +51,9 @@ sudo -u $TARGET_USER rclone mount GDriveCedrixm:vastai_rclone /workspace \
     --exclude ".cache/**" 
     # --config "$CUSTOM_HOME/.config/rclone/rclone.conf" \
 
+rm -rf /home/user
+ln -sv /workspace/userhome /home/user
+
 # 2. Mount the cloud folder to the workspace
 # We add --dir-cache-time to make it feel snappier
 # rclone mount $RCLONE_FOLDER /workspace \
