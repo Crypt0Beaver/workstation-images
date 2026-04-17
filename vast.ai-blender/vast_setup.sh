@@ -32,6 +32,8 @@ TARGET_USER="user"
 CUSTOM_HOME="/home/user"
 
 # 1. Create the config directory as 'user'
+mkdir -p /workspace
+chown $TARGET_USER /workspace
 sudo -u $TARGET_USER mkdir -p $CUSTOM_HOME/.config/rclone
 
 # 2. Write the config file as 'user'
