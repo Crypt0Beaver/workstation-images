@@ -6,7 +6,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 # 1. Update and install core tools
 apt-get update
-apt-get install -y nvtop htop rclone wget curl xz-utils libglu1-mesa jq flatpak
+apt-get install -y nvtop htop fuse3 wget curl xz-utils libglu1-mesa jq flatpak
 
 # Add the Flatpak path to the system-wide environment variables
 echo 'export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:/usr/local/share:/usr/share"' >> /etc/profile.d/flatpak_path.sh
@@ -31,16 +31,46 @@ rm nomachine_9.4.14_1_amd64.deb
 # Ensure the desktop is ready for remote connections
 systemctl enable nxserver
 
+# Enable 'allow_other' in the system config so 'user' can share the mount
+if [ -f /etc/fuse.conf ]; then
+    sed -i 's/#user_allow_other/user_allow_other/' /etc/fuse.conf
+fi
+
+# if [ -z "$RCLONECONFB64_1" ]; then
+#     echo "ERROR: RCLONECONFB64_1 is missing. Check Vast.ai Account Env Vars!"
+# else
+#     export RCLONE_CONFIG_BASE64="${RCLONECONFB64_1}${RCLONECONFB64_2}${RCLONECONFB64_3}${RCLONECONFB64_4}"
+# fi
+
+# Define the target user and their custom home
+TARGET_USER="user"
+CUSTOM_HOME="/workspace/homeuser"
+
+# 1. Create the config directory as 'user'
+sudo -u $TARGET_USER mkdir -p "~/.config/rclone"
+
+# 2. Write the config file as 'user'
+# We use 'sudo -u user tee' to write to a path the user owns
+echo "${RCLONECONFB64_1}${RCLONECONFB64_2}${RCLONECONFB64_3}${RCLONECONFB64_4}" | base64 -d | sudo -u $TARGET_USER tee "~/.config/rclone/rclone.conf" > /dev/null
+
 curl https://rclone.org/install.sh | sudo bash
+
+# 3. Mount as 'user'
+# We explicitly tell rclone where the config is since HOME might be weird during root execution
+sudo -u $TARGET_USER rclone mount GDriveCedrixm:vastai_rclone /workspace \
+    --vfs-cache-mode full \
+    --allow-other \
+    --daemon
+    # --config "$CUSTOM_HOME/.config/rclone/rclone.conf" \
 
 # 2. Mount the cloud folder to the workspace
 # We add --dir-cache-time to make it feel snappier
-rclone mount $RCLONE_FOLDER /workspace \
-    --config <(echo "$RCLONE_CONFIG_BASE64" | base64 -d) \
-    --vfs-cache-mode full \
-    --allow-other \
-    --dir-cache-time 1000h \
-    --daemon
+# rclone mount $RCLONE_FOLDER /workspace \
+#     --config <(echo "$RCLONE_CONFIG_BASE64" | base64 -d) \
+#     --vfs-cache-mode full \
+#     --allow-other \
+#     --dir-cache-time 1000h \
+#     --daemon
     
 # 2. Install PrusaSlicer via Flatpak
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
