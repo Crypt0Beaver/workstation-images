@@ -34,11 +34,11 @@ CUSTOM_HOME="/home/user"
 # 1. Create the config directory as 'user'
 mkdir -p /workspace
 chown $TARGET_USER /workspace
-sudo -u $TARGET_USER mkdir -p $CUSTOM_HOME/.config/rclone
+# sudo -u $TARGET_USER mkdir -p $CUSTOM_HOME/.config/rclone
 
 # 2. Write the config file as 'user'
 # We use 'sudo -u user tee' to write to a path the user owns
-echo "${RCLONECONFB64_1}${RCLONECONFB64_2}${RCLONECONFB64_3}${RCLONECONFB64_4}" | base64 -d | sudo -u $TARGET_USER tee $CUSTOM_HOME/.config/rclone/rclone.conf > /dev/null
+echo "${RCLONECONFB64_1}${RCLONECONFB64_2}${RCLONECONFB64_3}${RCLONECONFB64_4}" | base64 -d | sudo -u $TARGET_USER tee /var/tmp/rclone.conf > /dev/null
 
 curl https://rclone.org/install.sh | sudo bash
 
@@ -49,7 +49,7 @@ sudo -u $TARGET_USER rclone mount GDriveCedrixm:vastai_rclone /workspace \
     --allow-other \
     --daemon \
     --exclude ".cache/**" 
-    # --config "$CUSTOM_HOME/.config/rclone/rclone.conf" \
+    --config "/var/tmp/rclone.conf" \
 
 rm -rf /home/user
 ln -sv /workspace/userhome /home/user
