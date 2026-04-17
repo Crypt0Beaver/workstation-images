@@ -31,6 +31,15 @@ rm nomachine_9.4.14_1_amd64.deb
 # Ensure the desktop is ready for remote connections
 systemctl enable nxserver
 
+# 2. Mount the cloud folder to the workspace
+# We add --dir-cache-time to make it feel snappier
+rclone mount GDriveCedrixm:vastai_rclone /workspace \
+    --config <(echo "$RCLONE_CONFIG_BASE64" | base64 -d) \
+    --vfs-cache-mode full \
+    --allow-other \
+    --dir-cache-time 1000h \
+    --daemon
+    
 # 2. Install PrusaSlicer via Flatpak
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 flatpak install -y flathub com.prusa3d.PrusaSlicer
