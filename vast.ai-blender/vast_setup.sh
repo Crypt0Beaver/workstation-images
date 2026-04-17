@@ -60,7 +60,8 @@ curl https://rclone.org/install.sh | sudo bash
 sudo -u $TARGET_USER rclone mount GDriveCedrixm:vastai_rclone /workspace \
     --vfs-cache-mode full \
     --allow-other \
-    --daemon
+    --daemon \
+    --exclude ".cache/**" 
     # --config "$CUSTOM_HOME/.config/rclone/rclone.conf" \
 
 # 2. Mount the cloud folder to the workspace
