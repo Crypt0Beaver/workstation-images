@@ -31,6 +31,8 @@ rm nomachine_9.4.14_1_amd64.deb
 # Ensure the desktop is ready for remote connections
 systemctl enable nxserver
 
+curl https://rclone.org/install.sh | sudo bash
+
 # 2. Mount the cloud folder to the workspace
 # We add --dir-cache-time to make it feel snappier
 rclone mount GDriveCedrixm:vastai_rclone /workspace \
