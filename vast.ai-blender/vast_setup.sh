@@ -32,7 +32,7 @@ TARGET_USER="user"
 CUSTOM_HOME="/workspace/homeuser"
 
 # 1. Create the config directory as 'user'
-sudo -u $TARGET_USER mkdir -p "~/.config/rclone"
+sudo -u $TARGET_USER mkdir -p ~/.config/rclone
 
 # 2. Write the config file as 'user'
 # We use 'sudo -u user tee' to write to a path the user owns
