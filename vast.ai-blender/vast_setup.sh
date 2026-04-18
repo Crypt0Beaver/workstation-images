@@ -44,15 +44,34 @@ curl https://rclone.org/install.sh | sudo bash
 
 # 3. Mount as 'user'
 # We explicitly tell rclone where the config is since HOME might be weird during root execution
-sudo -u $TARGET_USER rclone mount GDriveCedrixm:vastai_rclone /workspace \
-    --vfs-cache-mode full \
-    --allow-other \
-    --daemon \
-    --config /var/tmp/rclone.conf \
-    --exclude "pulse/**" \
-    --exclude "dconf/**" \
-    --exclude "session/**" \
-    --exclude "*.lock"
+# sudo -u $TARGET_USER rclone mount GDriveCedrixm:vastai_rclone /workspace \
+#     --vfs-cache-mode full \
+#     --allow-other \
+#     --daemon \
+#     --config /var/tmp/rclone.conf \
+#     --exclude "pulse/**" \
+#     --exclude "dconf/**" \
+#     --exclude "session/**" \
+#     --exclude "*.lock"
+# Write the service file (from the block above)
+cat <<EOF > /etc/systemd/system/rclone-mount.service
+[Unit]
+Description=RClone Mount Service
+After=network-online.target
+[Service]
+Type=notify
+User=user
+ExecStart=/usr/bin/rclone mount GDriveCedrixm:vastai_rclone /workspace --config /var/tmp/rclone.conf --vfs-cache-mode full --allow-other --exclude "pulse/**" --exclude "dconf/**" --exclude "session/**" --exclude "*.lock"
+ExecStop=/bin/fusermount3 -u /workspace
+Restart=always
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 3. Enable and start the service
+systemctl daemon-reload
+systemctl enable rclone-mount.service
+systemctl start rclone-mount.service
 
 # Wait for the mount to be active
 while [ ! -d "/workspace/userhome" ]; do
