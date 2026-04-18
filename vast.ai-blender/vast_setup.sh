@@ -48,8 +48,28 @@ sudo -u $TARGET_USER rclone mount GDriveCedrixm:vastai_rclone /workspace \
     --vfs-cache-mode full \
     --allow-other \
     --daemon \
-    --exclude ".cache/**" \
-    --config "/var/tmp/rclone.conf" 
+    --config /var/tmp/rclone.conf
+
+# Wait for the mount to be active
+while [ ! -d "/workspace/userhome" ]; do
+  sleep 1
+done
+
+# 3. Define the critical KDE and App folders to symlink
+# (This array makes it incredibly easy to add more folders later)
+SYNC_FOLDERS=(".config" ".local/share" ".kde" ".mozilla" "Desktop" "Documents")
+
+# 4. Inject the symlinks
+for FOLDER in "${SYNC_FOLDERS[@]}"; do
+    # Ensure the folder structure exists on your Google Drive
+    sudo -u user mkdir -p "/workspace/userhome/$FOLDER"
+    
+    # Delete the VM's default local folder to make room for the link
+    rm -rf "/home/user/$FOLDER"
+    
+    # Create the symlink pointing to your Drive
+    sudo -u user ln -s "/workspace/userhome/$FOLDER" "/home/user/$FOLDER"
+done
 
 # rm -rf /home/user
 # ln -sv /workspace/userhome /home/user
