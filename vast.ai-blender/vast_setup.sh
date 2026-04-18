@@ -48,7 +48,11 @@ sudo -u $TARGET_USER rclone mount GDriveCedrixm:vastai_rclone /workspace \
     --vfs-cache-mode full \
     --allow-other \
     --daemon \
-    --config /var/tmp/rclone.conf
+    --config /var/tmp/rclone.conf \
+    --exclude "pulse/**" \
+    --exclude "dconf/**" \
+    --exclude "session/**" \
+    --exclude "*.lock"
 
 # Wait for the mount to be active
 while [ ! -d "/workspace/userhome" ]; do
