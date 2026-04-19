@@ -1,74 +1,46 @@
 #!/bin/bash
-exec > /var/log/vast_setup.log 2>&1  # Redirect all output to a log file
+exec > /var/log/vast_setup.log 2>&1
 echo "Starting setup at $(date)"
-# 1. Pre-configure debconf to be non-interactive
+
 export DEBIAN_FRONTEND=noninteractive
 
-# 1. Update and install core tools
+# --- 1. CORE TOOLS ---
 apt-get update
 apt-get install -y nvtop htop fuse3 wget curl xz-utils libglu1-mesa jq flatpak
 
-# Add the Flatpak path to the system-wide environment variables
+# 1. Stop unattended-upgrades so it doesn't lock dpkg
+systemctl stop unattended-upgrades
+systemctl disable unattended-upgrades
+
+# 2. Wait for any existing apt/dpkg locks to be released
+echo "Waiting for apt/dpkg locks to release..."
+while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
+    sleep 2
+done
+echo "Locks cleared. Proceeding with setup."
+
 if [ ! -f "/etc/profile.d/flatpak_path.sh" ]; then
     echo 'export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:/usr/local/share:/usr/share"' >> /etc/profile.d/flatpak_path.sh
 fi
-echo 'export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:/usr/local/share:/usr/share"' >> /etc/profile.d/flatpak_path.sh
-
-# Apply it to your current session immediately
 export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:$XDG_DATA_DIRS"
 
-# 1. Install Tailscale
+# --- 2. TAILSCALE (Version Independent) ---
 if ! command -v tailscale &> /dev/null; then
     curl -fsSL https://tailscale.com/install.sh | sh
 fi
-
-# 2. Start Tailscale using your pre-generated key
-# --hostname sets a permanent name you can use in NoMachine
-# --authkey allows the script to log in automatically
-# Only run 'up' if not already connected
 if [[ $(tailscale status --json | jq -r .BackendState) != "Running" ]]; then
     tailscale up --auth-key=$TAILSCALE_AUTH_KEY --hostname=vast-blender --accept-routes
 fi
 
-
-# Enable 'allow_other' in the system config so 'user' can share the mount
+# --- 3. RCLONE & MOUNT ---
 if [ -f /etc/fuse.conf ]; then
     sed -i 's/#user_allow_other/user_allow_other/' /etc/fuse.conf
 fi
 
-# if [ -z "$RCLONECONFB64_1" ]; then
-#     echo "ERROR: RCLONECONFB64_1 is missing. Check Vast.ai Account Env Vars!"
-# else
-#     export RCLONE_CONFIG_BASE64="${RCLONECONFB64_1}${RCLONECONFB64_2}${RCLONECONFB64_3}${RCLONECONFB64_4}"
-# fi
-
-# Define the target user and their custom home
-TARGET_USER="user"
-CUSTOM_HOME="/home/user"
-
-# 1. Create the config directory as 'user'
-mkdir -p /workspace
-chown $TARGET_USER /workspace
-# sudo -u $TARGET_USER mkdir -p $CUSTOM_HOME/.config/rclone
-
-# 2. Write the config file as 'user'
-# We use 'sudo -u user tee' to write to a path the user owns
-echo "${RCLONECONFB64_1}${RCLONECONFB64_2}${RCLONECONFB64_3}${RCLONECONFB64_4}" | base64 -d | sudo -u $TARGET_USER tee /var/tmp/rclone.conf > /dev/null
-
+echo "${RCLONECONFB64_1}${RCLONECONFB64_2}${RCLONECONFB64_3}${RCLONECONFB64_4}" | base64 -d | sudo -u user tee /var/tmp/rclone.conf > /dev/null
 curl https://rclone.org/install.sh | sudo bash
 
-# 3. Mount as 'user'
-# We explicitly tell rclone where the config is since HOME might be weird during root execution
-# sudo -u $TARGET_USER rclone mount GDriveCedrixm:vastai_rclone /workspace \
-#     --vfs-cache-mode full \
-#     --allow-other \
-#     --daemon \
-#     --config /var/tmp/rclone.conf \
-#     --exclude "pulse/**" \
-#     --exclude "dconf/**" \
-#     --exclude "session/**" \
-#     --exclude "*.lock"
-# Write the service file (from the block above)
+if [ ! -f "/etc/systemd/system/rclone-mount.service" ]; then
 cat <<EOF > /etc/systemd/system/rclone-mount.service
 [Unit]
 Description=RClone Mount Service
@@ -82,91 +54,78 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-
-# 3. Enable and start the service
 systemctl daemon-reload
 systemctl enable rclone-mount.service
 systemctl start rclone-mount.service
+fi
 
-# Wait for the mount to be active
-while [ ! -d "/workspace/userhome" ]; do
-  sleep 1
-done
+# Wait for mount
+while [ ! -d "/workspace/userhome" ]; do sleep 1; done
 
-# 3. Define the critical KDE and App folders to symlink
-# (This array makes it incredibly easy to add more folders later)
+# --- 4. KDE SYMLINKS ---
 SYNC_FOLDERS=(".config" ".local/share" ".kde" ".mozilla" "Desktop" "Documents")
-
-# 4. Inject the symlinks
 if [ -d "/workspace/userhome/.config" ]; then
     for FOLDER in "${SYNC_FOLDERS[@]}"; do
-        # Ensure the folder structure exists on your Google Drive
         sudo -u user mkdir -p "/workspace/userhome/$FOLDER"
-
-        if [ ! -L "/home/user/$FOLDER" ]; then # Only delete and link if it's NOT already a link
-            # Delete the VM's default local folder to make room for the link
+        if [ ! -L "/home/user/$FOLDER" ]; then 
             rm -rf "/home/user/$FOLDER"
-            
-            # Create the symlink pointing to your Drive    
             sudo -u user ln -s "/workspace/userhome/$FOLDER" "/home/user/$FOLDER"
         fi
     done
 fi
 
-# rm -rf /home/user
-# ln -sv /workspace/userhome /home/user
+# --- 5. NOMACHINE (Version Check) ---
+# Extracts the version from the download page and compares with installed
+NX_URL="https://web9001.nomachine.com/download/9.4/Linux/nomachine_9.4.14_1_amd64.deb"
+NX_LATEST_VER=$(echo $NX_URL | grep -oP 'nomachine_\K[0-9.]+(?=_1_amd64)')
+NX_INSTALLED_VER=$(dpkg-query -W -f='${Version}' nomachine 2>/dev/null | cut -d'-' -f1)
 
-# 2. Mount the cloud folder to the workspace
-# We add --dir-cache-time to make it feel snappier
-# rclone mount $RCLONE_FOLDER /workspace \
-#     --config <(echo "$RCLONE_CONFIG_BASE64" | base64 -d) \
-#     --vfs-cache-mode full \
-#     --allow-other \
-#     --dir-cache-time 1000h \
-#     --daemon
-
-# Install NoMachine
-if [ ! -f "/usr/NX/bin/nxserver" ]; then
-    echo "Installing NoMachine..."
-    wget https://web9001.nomachine.com/download/9.4/Linux/nomachine_9.4.14_1_amd64.deb
-    # 2. Run the installation in the background with a "safety" kill
-    # This ensures that even if it hangs at the very end (after files are copied), 
-    # your script can continue.
-    timeout 120s dpkg -i nomachine_9.4.14_1_amd64.deb || true
-    # dpkg -i nomachine_9.4.14_1_amd64.deb
-    
-    # 3. Clean up the dpkg lock if it's still held
-    # NoMachine is usually functional even if the post-inst script hangs at the end.
+if [ "$NX_INSTALLED_VER" != "$NX_LATEST_VER" ]; then
+    echo "Updating NoMachine to $NX_LATEST_VER..."
+    wget $NX_URL -O /tmp/nomachine.deb
+    timeout 120s dpkg -i /tmp/nomachine.deb || true
     fuser -vki /var/lib/dpkg/lock-frontend || true
     dpkg --configure -a || true
-    rm nomachine_9.4.14_1_amd64.deb
-    
-    # Ensure the desktop is ready for remote connections
+    rm /tmp/nomachine.deb
     systemctl enable nxserver
 else
-    echo "NoMachine already installed, skipping."
+    echo "NoMachine is up to date ($NX_INSTALLED_VER)."
 fi
 
-# 2. Install PrusaSlicer via Flatpak
+# --- 6. PRUSASLICER (Flatpak Update) ---
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+# flatpak install -y will skip if already installed, but not update.
+# 'flatpak update' handles the versioning for us.
 flatpak install -y flathub com.prusa3d.PrusaSlicer
-echo -e '#!/bin/bash\nflatpak run com.prusa3d.PrusaSlicer "$@"' > /usr/local/bin/prusa-slicer
-chmod +x /usr/local/bin/prusa-slicer
+flatpak update -y com.prusa3d.PrusaSlicer
+if [ ! -f "/usr/local/bin/prusa-slicer" ]; then
+    echo -e '#!/bin/bash\nflatpak run com.prusa3d.PrusaSlicer "$@"' > /usr/local/bin/prusa-slicer
+    chmod +x /usr/local/bin/prusa-slicer
+fi
 
-# 3. Install Blender via Tarball
+# --- 7. BLENDER (Version Check) ---
 B_BASE="https://mirrors.dotsrc.org/blender/release/"
-VERSION=$(curl -s $B_BASE | grep -oP 'Blender\K[0-9]+\.[0-9]+' | sort -V | tail -1)
-SUB=$(curl -s "${B_BASE}Blender${VERSION}/" | grep -oP "blender-\K$VERSION\.[0-9]+" | sort -V | tail -1)
-wget -q "https://mirrors.dotsrc.org/blender/release/Blender${VERSION}/blender-${SUB}-linux-x64.tar.xz"
-mkdir -p /opt/blender && tar -xf blender-*.tar.xz -C /opt/blender --strip-components=1
-ln -s /opt/blender/blender /usr/local/bin/blender
-rm blender-*.tar.xz
+B_VER_MAJOR=$(curl -s $B_BASE | grep -oP 'Blender\K[0-9]+\.[0-9]+' | sort -V | tail -1)
+B_VER_FULL=$(curl -s "${B_BASE}Blender${B_VER_MAJOR}/" | grep -oP "blender-\K$B_VER_MAJOR\.[0-9]+" | sort -V | tail -1)
 
-# 4. Setup your Sync Service
-# Note: You can also download your sync_data.sh and .service file here via wget
+# Read the currently installed version if it exists
+INSTALLED_B_VER=""
+[ -f /opt/blender/version.txt ] && INSTALLED_B_VER=$(cat /opt/blender/version.txt)
+
+if [ "$INSTALLED_B_VER" != "$B_VER_FULL" ]; then
+    echo "Updating Blender to $B_VER_FULL..."
+    wget -q "${B_BASE}Blender${B_VER_MAJOR}/blender-${B_VER_FULL}-linux-x64.tar.xz"
+    rm -rf /opt/blender && mkdir -p /opt/blender
+    tar -xf blender-*.tar.xz -C /opt/blender --strip-components=1
+    echo "$B_VER_FULL" > /opt/blender/version.txt
+    [ ! -L /usr/local/bin/blender ] && ln -s /opt/blender/blender /usr/local/bin/blender
+    rm blender-*.tar.xz
+else
+    echo "Blender is up to date ($INSTALLED_B_VER)."
+fi
+
+# --- 8. SYNC SERVICE ---
 wget -q -O /usr/local/bin/sync_data.sh https://raw.githubusercontent.com/Crypt0Beaver/workstation-images/refs/heads/main/vast.ai-blender/sync_data.sh
 chmod +x /usr/local/bin/sync_data.sh
 
-# 5. Signal Completion
-echo "Setup Complete" > /root/setup_done.txt
-echo "Setup finished at $(date)"
+echo "Setup finished at $(date)" > /root/setup_done.txt
