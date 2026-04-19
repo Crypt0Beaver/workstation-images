@@ -19,9 +19,13 @@ while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/apt/li
 done
 echo "Locks cleared. Proceeding with setup."
 
-echo "Setting up the provisioning service..."
-curl https://raw.githubusercontent.com/Crypt0Beaver/workstation-images/vast.ai-blender/vast-init.service > /etc/systemd/system/vast-init.service
-systemctl enable vast-init.service
+if [ ! -f "/etc/systemd/system/vast-init.service" ]; then
+    echo "Setting up the provisioning service..."
+    curl https://raw.githubusercontent.com/Crypt0Beaver/workstation-images/vast.ai-blender/vast-init.service > /etc/systemd/system/vast-init.service
+    systemctl enable vast-init.service
+else
+    echo "Provisioning service already set"
+fi
 
 if [ ! -f "/etc/profile.d/flatpak_path.sh" ]; then
     echo 'export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:/usr/local/share:/usr/share"' >> /etc/profile.d/flatpak_path.sh
@@ -45,22 +49,11 @@ echo "${RCLONECONFB64_1}${RCLONECONFB64_2}${RCLONECONFB64_3}${RCLONECONFB64_4}" 
 curl https://rclone.org/install.sh | sudo bash
 
 if [ ! -f "/etc/systemd/system/rclone-mount.service" ]; then
-cat <<EOF > /etc/systemd/system/rclone-mount.service
-[Unit]
-Description=RClone Mount Service
-After=network-online.target
-[Service]
-Type=notify
-User=user
-ExecStart=/usr/bin/rclone mount GDriveCedrixm:vastai_rclone /workspace --config /var/tmp/rclone.conf --vfs-cache-mode full --allow-other --exclude "pulse/**" --exclude "dconf/**" --exclude "session/**" --exclude "*.lock"
-ExecStop=/bin/fusermount3 -u /workspace
-Restart=always
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl daemon-reload
-systemctl enable rclone-mount.service
-systemctl start rclone-mount.service
+    curl https://raw.githubusercontent.com/Crypt0Beaver/workstation-images/vast.ai-blender/rclone-mount.service > /etc/systemd/system/rclone-mount.service
+
+    systemctl daemon-reload
+    systemctl enable rclone-mount.service
+    systemctl start rclone-mount.service
 fi
 
 # Wait for mount
