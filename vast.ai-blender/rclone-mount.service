@@ -1,0 +1,11 @@
+[Unit]
+Description=RClone Mount Service
+After=network-online.target
+[Service]
+Type=notify
+User=user
+ExecStart=/usr/bin/rclone mount GDriveCedrixm:vastai_rclone /workspace --config /var/tmp/rclone.conf --vfs-cache-mode full --allow-other --exclude "pulse/**" --exclude "dconf/**" --exclude "session/**" --exclude "*.lock"
+ExecStop=/bin/fusermount3 -u /workspace
+Restart=always
+[Install]
+WantedBy=multi-user.target
