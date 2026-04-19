@@ -14,6 +14,13 @@ echo 'export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:/usr/local/share:/usr
 # Apply it to your current session immediately
 export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:$XDG_DATA_DIRS"
 
+# 1. Install Tailscale
+curl -fsSL https://tailscale.com/install.sh | sh
+
+# 2. Start Tailscale using your pre-generated key
+# --hostname sets a permanent name you can use in NoMachine
+# --authkey allows the script to log in automatically
+tailscale up --auth-key=$TAILSCALE_AUTH_KEY --hostname=vast-blender --accept-routes
 
 
 # Enable 'allow_other' in the system config so 'user' can share the mount
