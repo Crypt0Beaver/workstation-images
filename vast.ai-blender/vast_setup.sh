@@ -9,18 +9,26 @@ apt-get update
 apt-get install -y nvtop htop fuse3 wget curl xz-utils libglu1-mesa jq flatpak
 
 # Add the Flatpak path to the system-wide environment variables
+if [ ! -f "/etc/profile.d/flatpak_path.sh" ]; then
+    echo 'export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:/usr/local/share:/usr/share"' >> /etc/profile.d/flatpak_path.sh
+fi
 echo 'export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:/usr/local/share:/usr/share"' >> /etc/profile.d/flatpak_path.sh
 
 # Apply it to your current session immediately
 export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:$XDG_DATA_DIRS"
 
 # 1. Install Tailscale
-curl -fsSL https://tailscale.com/install.sh | sh
+if ! command -v tailscale &> /dev/null; then
+    curl -fsSL https://tailscale.com/install.sh | sh
+fi
 
 # 2. Start Tailscale using your pre-generated key
 # --hostname sets a permanent name you can use in NoMachine
 # --authkey allows the script to log in automatically
-tailscale up --auth-key=$TAILSCALE_AUTH_KEY --hostname=vast-blender --accept-routes
+# Only run 'up' if not already connected
+if [[ $(tailscale status --json | jq -r .BackendState) != "Running" ]]; then
+    tailscale up --auth-key=$TAILSCALE_AUTH_KEY --hostname=vast-blender --accept-routes
+fi
 
 
 # Enable 'allow_other' in the system config so 'user' can share the mount
@@ -90,16 +98,20 @@ done
 SYNC_FOLDERS=(".config" ".local/share" ".kde" ".mozilla" "Desktop" "Documents")
 
 # 4. Inject the symlinks
-for FOLDER in "${SYNC_FOLDERS[@]}"; do
-    # Ensure the folder structure exists on your Google Drive
-    sudo -u user mkdir -p "/workspace/userhome/$FOLDER"
-    
-    # Delete the VM's default local folder to make room for the link
-    rm -rf "/home/user/$FOLDER"
-    
-    # Create the symlink pointing to your Drive
-    sudo -u user ln -s "/workspace/userhome/$FOLDER" "/home/user/$FOLDER"
-done
+if [ -d "/workspace/userhome/.config" ]; then
+    for FOLDER in "${SYNC_FOLDERS[@]}"; do
+        # Ensure the folder structure exists on your Google Drive
+        sudo -u user mkdir -p "/workspace/userhome/$FOLDER"
+
+        if [ ! -L "/home/user/$FOLDER" ]; then # Only delete and link if it's NOT already a link
+            # Delete the VM's default local folder to make room for the link
+            rm -rf "/home/user/$FOLDER"
+            
+            # Create the symlink pointing to your Drive    
+            sudo -u user ln -s "/workspace/userhome/$FOLDER" "/home/user/$FOLDER"
+        fi
+    done
+fi
 
 # rm -rf /home/user
 # ln -sv /workspace/userhome /home/user
@@ -114,21 +126,26 @@ done
 #     --daemon
 
 # Install NoMachine
-wget https://web9001.nomachine.com/download/9.4/Linux/nomachine_9.4.14_1_amd64.deb
-# 2. Run the installation in the background with a "safety" kill
-# This ensures that even if it hangs at the very end (after files are copied), 
-# your script can continue.
-timeout 120s dpkg -i nomachine_9.4.14_1_amd64.deb || true
-# dpkg -i nomachine_9.4.14_1_amd64.deb
-
-# 3. Clean up the dpkg lock if it's still held
-# NoMachine is usually functional even if the post-inst script hangs at the end.
-fuser -vki /var/lib/dpkg/lock-frontend || true
-dpkg --configure -a || true
-rm nomachine_9.4.14_1_amd64.deb
-
-# Ensure the desktop is ready for remote connections
-systemctl enable nxserver
+if [ ! -f "/usr/NX/bin/nxserver" ]; then
+    echo "Installing NoMachine..."
+    wget https://web9001.nomachine.com/download/9.4/Linux/nomachine_9.4.14_1_amd64.deb
+    # 2. Run the installation in the background with a "safety" kill
+    # This ensures that even if it hangs at the very end (after files are copied), 
+    # your script can continue.
+    timeout 120s dpkg -i nomachine_9.4.14_1_amd64.deb || true
+    # dpkg -i nomachine_9.4.14_1_amd64.deb
+    
+    # 3. Clean up the dpkg lock if it's still held
+    # NoMachine is usually functional even if the post-inst script hangs at the end.
+    fuser -vki /var/lib/dpkg/lock-frontend || true
+    dpkg --configure -a || true
+    rm nomachine_9.4.14_1_amd64.deb
+    
+    # Ensure the desktop is ready for remote connections
+    systemctl enable nxserver
+else
+    echo "NoMachine already installed, skipping."
+fi
 
 # 2. Install PrusaSlicer via Flatpak
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
