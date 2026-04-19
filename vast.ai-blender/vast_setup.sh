@@ -19,6 +19,10 @@ while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/apt/li
 done
 echo "Locks cleared. Proceeding with setup."
 
+echo "Setting up the provisioning service..."
+curl https://raw.githubusercontent.com/Crypt0Beaver/workstation-images/vast.ai-blender/vast-init.service > /etc/systemd/system/vast-init.service
+systemctl enable vast-init.service
+
 if [ ! -f "/etc/profile.d/flatpak_path.sh" ]; then
     echo 'export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:/usr/local/share:/usr/share"' >> /etc/profile.d/flatpak_path.sh
 fi
